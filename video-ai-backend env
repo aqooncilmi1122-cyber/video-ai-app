@@ -1,0 +1,3 @@
+PIKA_API_KEY=ضع_هنا_مفتاح_PIKA_إذا_وجد
+REDIS_URL=redis://default:PASS@host:port
+PORT=10000
