@@ -1,60 +1,48 @@
 <script>
-    // 🔗 رابط الباك-إند على Render
-    // ضع هنا رابط السيرفر بعد نشره على Render
-    const API_URL = "https://YOUR-BACKEND-NAME.onrender.com/api/generate-video";
-    // مثال بعد النشر الحقيقي:
-    // const API_URL = "https://video-ai-backend-figu.onrender.com/api/generate-video";
+// ⭐ رابط الباك-إند على Render
+const API_URL = "https://video-ai-backend-figu.onrender.com/api/generate-video";
 
-    const btn = document.getElementById("generateBtn");
-    const statusEl = document.getElementById("status");
-    const videoWrapper = document.getElementById("videoWrapper");
-    const videoPlayer = document.getElementById("videoPlayer");
+const btn = document.getElementById("generateBtn");
+const statusEl = document.getElementById("status");
+const videoWrapper = document.getElementById("videoWrapper");
+const videoPlayer = document.getElementById("videoPlayer");
 
-    btn.addEventListener("click", async () => {
-      const prompt = document.getElementById("prompt").value.trim();
-      const duration = Number(document.getElementById("duration").value) || 10;
-      const ratio = document.getElementById("ratio").value;
-      const style = document.getElementById("style").value;
+btn.addEventListener("click", async () => {
+  const prompt = document.getElementById("prompt").value.trim();
+  const duration = Number(document.getElementById("duration").value) || 10;
+  const ratio = document.getElementById("ratio").value;
+  const style = document.getElementById("style").value;
 
-      if (!prompt) {
-        statusEl.textContent = "Please write a script or prompt first.";
-        return;
-      }
+  if (!prompt) {
+    statusEl.textContent = "Please write a script or prompt first.";
+    return;
+  }
 
-      btn.disabled = true;
-      statusEl.textContent = "Generating video (demo)...";
+  btn.disabled = true;
+  statusEl.textContent = "Generating video...";
 
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, duration, ratio, style })
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("Backend error:", text);
-          statusEl.textContent = "Server error while generating video.";
-          btn.disabled = false;
-          return;
-        }
-
-        const data = await res.json();
-
-        if (data.videoUrl) {
-          statusEl.textContent = "Video ready!";
-          videoWrapper.style.display = "block";
-          videoPlayer.src = data.videoUrl;
-          videoPlayer.load();
-        } else {
-          statusEl.textContent = "No videoUrl in response.";
-        }
-
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "Network error. Please check your connection.";
-      } finally {
-        btn.disabled = false;
-      }
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, duration, ratio, style })
     });
-        </script>
+
+    const data = await res.json();
+
+    if (data.videoUrl) {
+      statusEl.textContent = "Video ready!";
+      videoWrapper.style.display = "block";
+      videoPlayer.src = data.videoUrl;
+      videoPlayer.load();
+    } else {
+      statusEl.textContent = "No video returned from server.";
+    }
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Network or server error.";
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
