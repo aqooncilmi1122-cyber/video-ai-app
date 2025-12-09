@@ -11,12 +11,13 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ⭐ Connect to Redis (Render Key Value)
+// ⭐ Connect to Redis
 const redis = new Redis(process.env.REDIS_URL);
 
-// ---------- REAL AI VIDEO GENERATION SECTION ----------
+// ---------------------------------
+// REAL AI VIDEO GENERATOR (PIKA)
+// ---------------------------------
 async function generateVideoReal(prompt, duration, ratio, style) {
-  // Example using PIKA API (Replace KEY)
   try {
     const response = await fetch("https://api.pika.art/v1/video", {
       method: "POST",
@@ -33,65 +34,72 @@ async function generateVideoReal(prompt, duration, ratio, style) {
     });
 
     const data = await response.json();
-    return data.video_url; // IMPORTANT
+    return data.video_url; // Important!
   } catch (error) {
     console.error("Pika API Error:", error);
     return null;
   }
 }
 
-
-// ---------- FALLBACK DEMO GENERATOR ----------
+// ---------------------------------
+// FALLBACK DEMO VIDEO
+// ---------------------------------
 async function generateVideoDemo() {
   return "https://samplelib.com/lib/preview/mp4/sample-5s.mp4";
 }
 
-
-// ---------- MAIN API ----------
+// ---------------------------------
+// MAIN API
+// ---------------------------------
 app.post("/api/generate-video", async (req, res) => {
   const { prompt, duration, ratio, style } = req.body;
 
   if (!prompt) {
-    return res.status(400).json({ error: "Prompt required" });
+    return res.status(400).json({ error: "Prompt is required" });
   }
 
   const jobId = "job_" + Date.now();
 
-  await redis.set(jobId, JSON.stringify({
-    prompt,
-    status: "processing"
-  }), "EX", 3600);
+  // Save initial job status in Redis
+  await redis.set(
+    jobId,
+    JSON.stringify({ prompt, status: "processing" }),
+    "EX",
+    3600
+  );
 
   let videoUrl = null;
 
-  // 1️⃣ Try real AI API
+  // Try real PIKA API
   if (process.env.PIKA_API_KEY) {
     videoUrl = await generateVideoReal(prompt, duration, ratio, style);
   }
 
-  // 2️⃣ If real API fails → fallback demo
+  // If no real API available → use demo
   if (!videoUrl) {
     videoUrl = await generateVideoDemo();
   }
 
-  await redis.set(jobId, JSON.stringify({
-    prompt,
-    status: "done",
-    videoUrl
-  }), "EX", 3600);
-
-  res.json({
+  // Save result
+  await redis.set(
     jobId,
-    videoUrl
-  });
+    JSON.stringify({ prompt, status: "done", videoUrl }),
+    "EX",
+    3600
+  );
+
+  res.json({ jobId, videoUrl });
 });
 
-// Status checker
+// ---------------------------------
+// JOB STATUS CHECKER
+// ---------------------------------
 app.get("/api/status/:id", async (req, res) => {
   const data = await redis.get(req.params.id);
   if (!data) return res.json({ error: "Job not found" });
   res.json(JSON.parse(data));
 });
 
+// ---------------------------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("🚀 Backend running on", PORT));
+app.listen(PORT, () => console.log("🚀 Backend running on PORT", PORT));
